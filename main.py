@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import json
 import os
 from dotenv import load_dotenv
+from zoneinfo import ZoneInfo  # Add this import at the top
 
 TOKEN: Final = load_dotenv().get('TOKEN')
 BOT_USERNAME: Final = load_dotenv().get('BOT_USERNAME')
@@ -221,10 +222,12 @@ if __name__ == '__main__':
     # Error handler
     application.add_error_handler(error)
 
-    # Schedule daily report at 6 AM
+    # Schedule daily report at 6 AM Vietnam time
     job_queue = application.job_queue
-    target_time = datetime.now().replace(hour=6, minute=0, second=0, microsecond=0)# Adjust to UTC (Vietnam is UTC+7)
-    if datetime.now() > target_time:
+    vn_tz = ZoneInfo("Asia/Ho_Chi_Minh")
+    now_vn = datetime.now(vn_tz)
+    target_time = now_vn.replace(hour=6, minute=0, second=0, microsecond=0)
+    if now_vn > target_time:
         target_time = target_time + timedelta(days=1)  # Schedule for tomorrow if it's already past 6AM
 
     initial_delay = (target_time - datetime.now()).total_seconds()

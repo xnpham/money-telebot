@@ -6,10 +6,15 @@ import json
 import os
 from dotenv import load_dotenv
 from zoneinfo import ZoneInfo  # Add this import at the top
+from pymongo import MongoClient
+from bson import ObjectId
 
-TOKEN: Final = load_dotenv().get('TOKEN')
-BOT_USERNAME: Final = load_dotenv().get('BOT_USERNAME')
-DATA_FILE: Final = 'finance_data.json'
+load_dotenv()
+TOKEN: Final = os.getenv('TOKEN')
+BOT_USERNAME: Final = os.getenv('BOT_USERNAME')
+MONGO_URI = os.getenv('MONGO_URI')
+DB_NAME = os.getenv('DB_NAME')
+COLLECTION_NAME = os.getenv('COLLECTION_NAME')
 
 # Financial data structure
 finance_data = {
@@ -20,22 +25,26 @@ finance_data = {
     'daily_data': {}  # Stores daily income and expenses
 }
 
+client = MongoClient(MONGO_URI)
+db = client[DB_NAME]
+collection = db[COLLECTION_NAME]
+OBJECTID = ObjectId(os.getenv('OBJECT_ID_STRING'))  # Replace with your actual ObjectId
+
 # Load/save financial data
 def load_data():
     global finance_data
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, 'r') as f:
-            finance_data = json.load(f)
-        # Reset monthly spending if it's a new month
-        current_month = datetime.now().month
-        if current_month != finance_data.get('last_month'):
-            finance_data['monthly_spending'] = 0
-            finance_data['last_month'] = current_month
-            save_data()
+    doc = collection.find_one({"_id": OBJECTID})
+    if doc:
+        finance_data.update({k: v for k, v in doc.items() if k != "_id"})
+    else:
+        save_data()  # Lưu dữ liệu mặc định nếu chưa có
 
 def save_data():
-    with open(DATA_FILE, 'w') as f:
-        json.dump(finance_data, f)
+    collection.update_one(
+        {"_id": OBJECTID},
+        {"$set": finance_data},
+        upsert=True
+    )
 
 def check_new_month():
     current_month = datetime.now().month
@@ -230,7 +239,7 @@ if __name__ == '__main__':
     if now_vn > target_time:
         target_time = target_time + timedelta(days=1)  # Schedule for tomorrow if it's already past 6AM
 
-    initial_delay = (target_time - datetime.now()).total_seconds()
+    initial_delay = (target_time - now_vn).total_seconds()
     job_queue.run_repeating(send_daily_report, interval=86400, first=initial_delay)  # 86400 seconds = 24 hours
 
     # Start the bot

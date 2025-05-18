@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo  # Add this import at the top
 from pymongo import MongoClient
 from bson import ObjectId
 
-load_dotenv()
+# load_dotenv()
 TOKEN: Final = os.getenv('TOKEN')
 BOT_USERNAME: Final = os.getenv('BOT_USERNAME')
 MONGO_URI = os.getenv('MONGO_URI')
